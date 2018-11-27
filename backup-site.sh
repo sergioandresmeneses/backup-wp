@@ -1,24 +1,50 @@
 #!/bin/bash
-if [ $# -lt 1 ] ; then
-       echo "Please type the name of your site"
-        exit 1
-fi
+function backup() {
+  echo "Inside the function $site..."
+  if [[ -d /var/www/$site ]]; then
+    echo "backing up the site $site ...."
+    echo "...backup in progress..."
+    zip -r backup-$site.zip /var/www/$site
+  fi
+}
 
-site=`echo $1 | tr [A-Z] [a-z]`
-echo "site: $site"
-if [ ! -f /etc/nginx/sites-enabled/$site ] ||  [ ! -f /etc/apache2/sites-available/$site ] ; then
-        echo "The site is not configured in the server"
-        exit 1
-fi
+function validation() {
 
-echo "The site to backup is $1..."
+  if [ $# -lt 1 ] ; then
+         echo "Please type the name of your site"
+          exit 1
+  fi
 
-siteFolder="/var/www/$1"
-echo "siteFolder: $siteFolder"
-[ -d "$siteFolder" ] || echo "The site doesn't have a folder at /var/www/ ... closing process"
+  #Format the site domain into lowercase
+  site=`echo $1 | tr [A-Z] [a-z]`
+  echo "The site: $site is going to be prepared for backup!"
+  echo "..."
 
-#backupFolder="/var/backups"
-#[ -d "$backupFolder"] || mkdir "$backupFolder"
+  #Check if Apache is the webserver in place
+  #service apache2 status
+  if [[ $(service apache2 status) ]]; then
+    echo "Your webserver is Apache..."
+    if [[ -f /etc/apache2/sites-available/$site ]]; then
+      echo "The site: $site is going to be prepared for backup!"
+      #Backup site!
+    else
+      echo "The site: $site is not properly configured on the server!"
+      exit 1
+    fi
+  fi
 
-##End of the Script
+  #Checks if Nginx is the webserver in place.
+  if [[ $(service nginx status) ]]; then
+    echo "Your webserver is Nginx..."
+    if [[ -f /etc/nginx/sites-enabled/$site ]]; then
+      echo "The site: $site is going to be prepared for backup!"
+      backup
+    else
+      echo "The site: $site is not properly configured on the server!"
+      exit 1
+    fi
+  fi
+}
+
+validation $@
 exit 0
