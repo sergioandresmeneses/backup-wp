@@ -4,11 +4,15 @@ function backup() {
   if [[ -d /var/www/$site ]]; then
     echo "=== Backing up the site $site ==="
     echo "...backup in progress..."
-    echo "Doing the dabatase backup...."
-    DB_NAME=$(grep DB_NAME /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
-    DB_USER=$(grep DB_USER /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
-    DB_PASSWORD=$(grep DB_PASSWORD /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
-    mysqldump -u $DB_USER $DB_NAME -p$DB_PASSWORD > DB-$DB_NAME.sql
+    if [[ -f /var/www/$site/wp-config.php ]]; then
+      echo "Doing the dabatase backup...."
+      DB_NAME=$(grep DB_NAME /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
+      DB_USER=$(grep DB_USER /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
+      DB_PASSWORD=$(grep DB_PASSWORD /var/www/$site/wp-config.php | awk -F"'" '{print $4}')
+      mysqldump -u $DB_USER $DB_NAME -p$DB_PASSWORD > DB-$DB_NAME.sql
+    else
+      echo "WP-cofig.php file not present at the site root... backing up only the files!"
+    fi
     zip -r backup-$site.zip /var/www/$site DB-$DB_NAME.sql
   fi
 }
@@ -31,7 +35,7 @@ function validation() {
     echo "Your webserver is Apache..."
     if [[ -f /etc/apache2/sites-available/$site ]]; then
       echo "The site: $site is going to be prepared for backup!"
-      #Backup site!
+      backup
     else
       echo "The site: $site is not properly configured on the server!"
       exit 1
